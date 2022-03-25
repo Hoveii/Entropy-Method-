@@ -2,60 +2,6 @@ import pandas as pd
 import numpy as np
 
 
-# 熵值法
-def entropy_method(data_, features_, m_, d_, ne_features_=None, zero_offset=1e-6):
-    """
-    data_：DataFrame类型，数据集（主要需要包含年份year）
-    features_：List类型，变量名列表
-    ne_features_：List类型，负向指标变量名列表
-    m_：int类型，省份数量
-    d_: int类型，年份数量
-    zero_offset: float类型, 最小值平移数
-    """
-    # 极差标准化
-    normal_data_ = data_.copy()
-    for feature_ in features_:
-        for year_ in normal_data_['year'].unique():
-            normal_data_min = min(normal_data_.loc[:, feature_])
-            normal_data_max = max(normal_data_.loc[:, feature_])
-            if ne_features_ and feature_ in ne_features_:
-                temp = normal_data_max - normal_data_.loc[normal_data_['year'] == year_, feature_]
-            else:
-                temp = normal_data_.loc[normal_data_['year'] == year_, feature_] - normal_data_min
-            temp = temp / (normal_data_max - normal_data_min)
-            normal_data_.loc[normal_data_['year'] == year_, feature_] = temp
-
-    # 最小值平移处理
-    for feature_ in features_:
-        normal_data_.loc[normal_data_[feature_] == 0, feature_] = zero_offset
-
-    # 计算指标比重
-    pro_data_ = normal_data_.copy()
-    for feature_ in features_:
-        index_ = pro_data_.loc[:, feature_] / sum(pro_data_.loc[:, feature_])
-        pro_data_.loc[:, feature_] = index_
-
-    # 计算信息熵
-    entropy_ = np.arange(len(features_)).astype(float)  # 注意初始化需要设定为浮点型
-    for ind_, feature_ in enumerate(features_):
-        entropy_[ind_] = (- 1 / np.log(m_ * d_)) * sum(pro_data_[feature_] * np.log(pro_data_[feature_]))
-
-    # 权重计算
-    g_ = 1 - entropy_  # 计算变异系数
-    w_ = g_ / sum(g_)  # 计算权重
-
-    # 综合得分计算
-    score_ = np.dot(normal_data_.loc[:, features_], w_)
-
-    # 汇总信息输出
-    res_ = dict()
-    res_['normal_data'] = normal_data_
-    res_['weight'] = pd.DataFrame(data=w_, index=features_)
-    res_['score'] = pd.DataFrame(data=score_)
-
-    return res_
-
-
 def entropy_method(data, features, m, d, ne_features=None, zero_offset=1e-6):
     """
     data：DataFrame类型，数据集（需要包含年份year）
